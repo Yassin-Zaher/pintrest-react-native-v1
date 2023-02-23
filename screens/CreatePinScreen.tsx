@@ -1,10 +1,26 @@
 import React, { useState, useEffect } from "react";
-import { Button, Image, View, StyleSheet, TextInput } from "react-native";
+import { Button, Image, View, StyleSheet, TextInput, Alert } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import { useNhostClient } from "@nhost/react";
+import { useNavigation } from "@react-navigation/native";
 
 export default function CreatePinScreen() {
   const [image, setImage] = useState(null);
   const [title, setTitle] = useState("");
+  const nhost = useNhostClient();
+  const navigation = useNavigation()
+  const CREATE_PIN_MUTATION = `
+  mutation MyMutation($image: String!, $title: String) {
+    insert_pins(objects: {image: $image, title: $title}) {
+      returning {
+        created_at
+        id
+        image
+        title
+        user_id
+      }
+    }
+  }`
 
   const pickImage = async () => {
     // No permissions request is necessary for launching the image library
@@ -21,7 +37,22 @@ export default function CreatePinScreen() {
     }
   };
 
-  const onSubmit = () => {};
+  const onSubmit = async() => {
+    const result = await nhost.graphql.request(CREATE_PIN_MUTATION, {
+      title,
+      image: 'https://notjustdev-dummy.s3.us-east-2.amazonaws.com/pinterest/7.jpeg'
+    })
+
+    console.log(result);
+
+    if(result.error){
+      Alert.alert("Error Uploading Image", result.error.message)
+      
+    }else{
+      navigation.goBack()
+    }
+    
+  };
 
   return (
     <View style={styles.root}>
